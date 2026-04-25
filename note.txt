@@ -1,6 +1,80 @@
+Docker:
+
+-Qu'est ce que un deamon?
+
+Un daemon est un prog qui s'execute en arriere plan, il est lance souvent au demarrage avec les droits de roots si il appercoit une commande ou une requete specifique 
+
+il execute ce que pourquoi il est programme.
+
+exemple: cron, http, syslog
+
+-Pourquoi Docker se differencie des VMs?
+
+Docker se differencie des Vms car il n'emule pas de materiel de la machine. Il agit comme un daemon qui utilise la machine facon processus.
+
+Sa conception repose sur namespace, Cgroups, PID1.
+
+Les namespace servent a encapsuler notre Docker et a donner acces que a ce qu'il a sur lui (son namespace)
+
+Cgroups servent a definir combien de ressource son alloue a un processus, des que le process s'enballe on peut avoir un l'OOM Killer (Out Of Memory)
+
+PID1 l'isolation provoque par les namespace servent aussi a faire croire que notre daemon
+
+-Qu'est ce que le PID1 ?
+
+Le PID1 est le process parent de tous les process quand on boot notre os.
+
+-Best practise for writing an DockerFiles?
+
+Les bonnes pratique pour utiliser Docker c'est de reflechir de facon mise en cache et UnionFS avec nos installations.
+
+Chercher les image os les plus legere
+
+et chercher a limitter les droits de notre container pour eviter les surprises. 
+
+Docker Volume:
+
+docker volume create <name volume>
+docker volume "ls rm"
+
+-Volume Manage:
+docker --rm -it <name volume Manage>:<dossier conteneur> <image>
+
+Le piège à éviter :
+Si tu utilises un Bind Mount pour WordPress sur ton dossier /home/login/data,
+n'oublie pas de faire un chown -R 33:33 (ou l'UID de ton utilisateur web)
+sur ce dossier, sinon ton site ne pourra jamais installer de plugins ou uploader d'images !
+
+-Volume Mapper:
+docker --rm -it <dossier local>:<dossier conteneur> <image>
+
+Docker Reseau:
+-Mapper Port
+pour mapper des port utiliser l'option -p lors des creations des Docker
+
+-Creations Reseau: --network
+3 possibilite:
+-Isolation: none
+
+-Bridge
+
+-Host
+
+Cahier des charges:
+
+-3 docker container (NGINX/ WordPress + php-fpm/ MariaDB/)
+
+-Les volume manage sont INTERDIT, que des volume mappe
+    -Le stockage des volume doit etre dans /home/login/data sur ma machine virtuelle
+
+-Etablir la connection entre mes container docker-network
+
+-Mes container doivent restart dans le cas d'un crash
+
 Docker compose:
 Nginx + TLS 1.2 or 1.3
 
 WordPress + php+ fpm
 
 MariaDB
+Qu'est ce que un daemon 
