@@ -103,6 +103,10 @@ Faire en sorte que notre image est la plus ephemere la plus possible, faire atte
 
 NOTION:
 
+docker-compose.yml:Il s'agit d'un fichier qui organise nos container, les dependances, etc...
+Pour nous livrer une mini structure operationnel avec nos containers. De plus le fichier et tres lisibles
+et rapide a comprendre une fois ouvert.
+
 le "shell and exec form", le shell form execute de facon brut du code de la
 meme maniere que l'on pourrai le faire dans un terminal, alors que le exec form,
 il utilise un json(where each element in the array is a command, flag, or argument) ou il fera appel a une commande shell specifique
@@ -151,11 +155,23 @@ Elles sont tres similaires mais ADD gere les URL, les extractions aussi, les deu
 de notre architecture dans le container.
 PS: Regle utiliser COPY car ADD est plus pousse
 
-VOLUME
+VOLUME: option -v creer le lien entre le container et notre machine
 
-Sert a la creation de volume dans notre container si aucun point d'accroche est specifier 
-docker gere le volume a sa facon.
-a eclaicir: docker run -v ou un docker-compose.yml
+Sert a la creation de volume dans notre container, Docker a deux facon de creer un volume:
+Bind mount:
+Il s'agit de volume ou l utilisateur specifie le path entre son os et son container
+
+Volume mount:
+Il s'agit de volume gere pars docker 
+
+tmpfs mounts:
+les volumes tmpfs sont la pour avoir une duree de vie temporaire,
+la data est donc reset quand le docker stop, restart ou que l'host s'arrete
+
+Names pipes:
+Ceci a le meme comportement que les pipes avec bash, on peut communiquer entre le container et l'host
+l'utilisation principal est de relier notre container a notre docker et de pouvoir l'utiliser pour automatiser
+une chaine de production au sein d une equipe (CI/CD "Intégration Continue / Déploiement Continu").
 
 WORKDIR
 
@@ -168,15 +184,4 @@ de notre machine. le mappage ce fait d'abord avec l'option -p, neanmoins il a to
 tres sympa sur un network de docker si le port sont bien mapper avec notre EXPOSE la communication peut alors
 s'effectuer
 
-
-
-Refaire les VOLUME
-VOLUME
-
-"si aucun point d'accroche n'est spécifié, Docker gère le volume à sa façon"
-
-La formulation reste confuse. Ce que fait VOLUME dans un Dockerfile c'est toujours créer un volume anonyme géré par Docker — il n'y a pas de condition. Ta note "à éclaircir" est honnête, mais autant corriger directement :
-
-VOLUME dans le Dockerfile → volume anonyme, géré par Docker
--v nom:/chemin au run → volume nommé, que tu contrôles
--v /host:/chemin au run → bind mount, pointe vers ton filesystem
+Watchtower surveille l'etat de l'image 
