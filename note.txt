@@ -70,6 +70,8 @@ pour mapper des port utiliser l'option -p lors des creations des Docker
 
 Cahier des charges:
 
+-Chaque image doivent avoir le meme nom que le service qui correspond a celle-ci.
+
 -3 docker container (NGINX/ WordPress + php-fpm/ MariaDB/)
 
 -Les volume manage sont INTERDIT, que des volume mappe
