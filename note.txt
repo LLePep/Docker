@@ -187,3 +187,18 @@ tres sympa sur un network de docker si le port sont bien mapper avec notre EXPOS
 s'effectuer
 
 Watchtower surveille l'etat de l'image 
+
+Docker Network vs Host Network
+
+Docker Netword:
+Le docker Network marche comme une surcouche d'adressage prive, c'est a dire qu'il creer un reseau prive X.X.X.X, ou chaque container aura ca propre inspect
+les containers eux feront donc appels aux adresses de ce reseau que Docker creer.
+L'avantage de ca c'est que nos container sont totalement dissocier de notre carte reseau des lors il est possible d'ouvrir les prorpres PORT de notre container.
+
+Host Network:
+Donc le reseau de la machine en l'occurence ici notre VM qui ferai office de carte reseau pour nos containers c'est ce que l'on appel un BRIDGE (on redirige le trafic reseau, d'une carte sur une autre).
+Dans ce cas la nos containers partage la meme carte reseau que notre VM, c'est plus rapide pas de surcouche d'adresse prive.
+Mais le desavantage de cette configuration qui n'en etait pas un avant c'est le fait que nos ports deviennent partage entre eux (dangereux evidemment si mon serveur NGINX recoit les requetes de MariaDB pas sur qu'il comprenne grand chose).
+
+
+//faire attention a la mention Bridge
