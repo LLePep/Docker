@@ -188,17 +188,209 @@ s'effectuer
 
 Watchtower surveille l'etat de l'image 
 
+Bridge vs Bridge Docker
+
+Bridge:
+Le bridge dans l'aspect reseau est le fait de connecter une carte reseau virtuelle ou physique, a une autre carte reseau pour faire en sorte qu'il partage le flux entre eux
+mais aussi evidemment pour se retrouver la plage d'adresse reseau.
+
+Bridge selon Docker:
+Le bridge Docker lui est plus pousse parce que il se refererai plus a la notion de NAT "network adress translation" qui veux litteralement dire "reseau d'adresse traduite" qui est plus puissant et
+un peu plus couteux car il creer un reseau d'adress en l'occurence d'adress prive pour avoir son sous-reseau.
+
 Docker Network vs Host Network
 
-Docker Netword:
-Le docker Network marche comme une surcouche d'adressage prive, c'est a dire qu'il creer un reseau prive X.X.X.X, ou chaque container aura ca propre inspect
-les containers eux feront donc appels aux adresses de ce reseau que Docker creer.
-L'avantage de ca c'est que nos container sont totalement dissocier de notre carte reseau des lors il est possible d'ouvrir les prorpres PORT de notre container.
+Docker Network (Mode Bridge Docker) :
+Le Docker Network fonctionne grâce à un mécanisme de NAT.
+Il crée un sous-réseau virtuel isolé où chaque conteneur possède sa propre adresse privée.
+Pour l'intercommunication, nos conteneurs communiquent entre eux en utilisant directement ces adresses privées ou le DNS interne créé par Docker (ex: mariadb).
+Ce fonctionnement repose directement sur l'utilisation des Network Namespaces de Linux, qui permettent d'isoler la pile réseau de chaque conteneur.
+L'avantage principal est que nos conteneurs sont totalement dissociés de la carte réseau de la machine hôte :
+il est donc possible d'ouvrir les mêmes ports (ex: le port 80) dans plusieurs conteneurs différents sans aucun conflit.
 
 Host Network:
-Donc le reseau de la machine en l'occurence ici notre VM qui ferai office de carte reseau pour nos containers c'est ce que l'on appel un BRIDGE (on redirige le trafic reseau, d'une carte sur une autre).
-Dans ce cas la nos containers partage la meme carte reseau que notre VM, c'est plus rapide pas de surcouche d'adresse prive.
-Mais le desavantage de cette configuration qui n'en etait pas un avant c'est le fait que nos ports deviennent partage entre eux (dangereux evidemment si mon serveur NGINX recoit les requetes de MariaDB pas sur qu'il comprenne grand chose).
+Dans cette deuxieme configuration qui serai en l'occurence la configuration "vanilla".
+Nos containers font directement parties des process de notre VM, ou docker est le parent,
+Le desavantage de sa c'est que nos container vont directement prendre donc les port physiques de notre machine hote.
 
 
-//faire attention a la mention Bridge
+Fichier de configuration mariaDB:
+
+Il decoupe sont fichier en plusieur partie, c'est pour avant tout des histoire de compatibilite historique.
+Vue que mariadb et la deuxieme fille de son createur.
+
+les trois differente partie sont:
+
+[mysqld] "avec le d" => daemon
+C'est une section qui sera lu que par le daemon mysql/mariaDB
+
+
+[server]
+Il s'agit d'une section qui regroupe plus de chose pas seulement le server, mais les outils qui
+pourront etre integre plus tard comme "galera notre load balancer" qui sera integre
+
+[mysql] "sans le d" => client
+Il s'agit du client quand on se connecte a notre base de donnees, pour pimper les requetes tout ca,
+avec un fichier pour les cmd tape
+
+
+Base of settings:
+
+user = $USER_NAME
+Le rôle : Cette ligne dit au daemon : "Dès que tu as fini de démarrer,
+rétrograde tes privilèges et prends l'identité de l'utilisateur système mysql". Cet utilisateur a des droits très limités.
+
+pid-file = /var/run/mysqld/mysqld.pid
+Une fois que mariaDB demarre elle ecrit sont PID dans ce fichier ce qui permet de savoir si le process est tjs envie pour le systeme
+ou Docker.
+
+basedir = /user
+Le rôle : C'est là que se trouvent les fichiers exécutables,
+les fichiers d'aide et les bibliothèques partagées (les binaires) nécessaires pour faire tourner le programme.
+C'est du "lecture seule" pour MariaDB.
+
+datadir = /var/lib/mysql
+/// faire attention de bien lie le volume a /home/login/data
+
+Le rôle : C'est l'emplacement physique sur le disque dur où MariaDB va stocker les vraies données :
+tes tables WordPress, tes utilisateurs, tes articles, tes mots de passe.
+
+tmpdir = /tmp
+
+Le rôle : Il utilise ce dossier pour créer des fichiers temporaires (des "brouillons"),
+faire ses calculs, puis il les supprime dès que la requête est finie.
+
+# Broken reverse DNS slows down connections considerably and name resolve is
+# safe to skip if there are no "host by domain name" access grants
+
+Le fichier de configuration de MariaDB indique qu'un Reverse DNS manquant ou défaillant ralentit considérablement les connexions
+entre la base de données et les services qui l'interrogent. Dans notre cas,
+le Reverse DNS n'est pas à proprement parler "cassé" :
+c'est simplement que Docker fait le choix de ne pas gérer la résolution inversée (IP ➡️ Nom).
+Pourtant, Docker possède bien un serveur DNS interne capable de faire correspondre les noms de services à leurs adresses IP (résolution directe).
+Le problème technique sous-jacent qui empêche Docker de faire l'inverse est l'ambiguïté de la réponse :
+sur quel nom le DNS devrait-il se baser pour identifier le conteneur ? L'ID unique du conteneur ?
+Le nom du service dans le docker-compose.yml ? Ou le nom réel du conteneur ?
+De plus, notre infrastructure Docker Network étant un réseau privé, étanche et entièrement contrôlé,
+l'attribution des IP est verrouillée par le moteur Docker lui-même. Le risque d'usurpation d'identité réseau est donc nul.
+Activer la directive skip-name-resolve permet donc de sauter cette vérification inutile et d'éliminer les temps d'attente de connexion.
+
+bind-address            = 127.0.0.1
+Configuration de l'écoute réseau (bind-address) :
+La directive bind-address définit sur quelle adresse IP le service MariaDB doit ouvrir ses écoutes.
+Par défaut, elle est configurée sur 127.0.0.1 (localhost),
+ce qui isole MariaDB à l'intérieur de son propre conteneur et empêcherait WordPress de le contacter.
+Dans un environnement Docker, l'adressage IP des conteneurs est dynamique et géré à chaque démarrage par le Docker Network.
+Il est donc impossible de prédire et d'écrire une IP fixe dans notre fichier de configuration.
+En remplaçant cette valeur par 0.0.0.0, on indique à MariaDB d'écouter sur toutes les interfaces réseau disponibles du conteneur.
+Ainsi, peu importe l'IP dynamique que Docker attribue au conteneur,
+MariaDB sera capable de recevoir et de traiter les requêtes provenant de WordPress
+
+GESTION DES RESSOURCES:
+
+1. key_buffer_size = 128M (La RAM pour les index)
+    Qu'est-ce que c'est ? C'est la quantité de mémoire RAM allouée pour stocker les index des tables de type MyISAM (un vieux moteur de stockage de MySQL/MariaDB).
+    Le rôle : Les index permettent à MariaDB de trouver une information instantanément sans relire toute la base de données. Plus ce buffer est grand, plus MariaDB garde d'index en RAM, et plus les recherches sont rapides.
+    Pour ton projet : WordPress utilise aujourd'hui un moteur plus moderne appelé InnoDB. Tu peux donc laisser cette ligne commentée, la valeur par défaut suffit largement.
+
+2. max_allowed_packet = 1G (La taille maximale d'une ligne)
+    Qu'est-ce que c'est ? C'est la taille maximale d'une seule requête SQL ou d'une seule ligne de données que le serveur accepte de recevoir ou d'envoyer d'un coup.
+    Le rôle : Si tu as un article WordPress extrêmement long, ou si tu tentes d'importer une sauvegarde complète de ton site qui fait plusieurs mégaoctets en une seule commande SQL, MariaDB a besoin d'un "paquet" assez grand pour la traiter.
+    Pour ton projet : 1G (1 Gigaoctet) est une valeur énorme et très confortable. Cela évite les erreurs du type "MySQL server has gone away" lors des gros imports de bases de données.
+
+3. thread_stack = 192K (La mémoire par question)
+    Qu'est-ce que c'est ? C'est la taille de la mémoire de travail (la pile) allouée à chaque "thread" (chaque tâche).
+    Le rôle : À chaque fois que WordPress pose une question à MariaDB, le serveur crée un petit calcul en interne. La thread_stack est l'espace mémoire réservé pour exécuter ce calcul ou ces fonctions SQL complexes.
+    Pour ton projet : 192K est la valeur standard de sécurité sous Debian pour que le serveur ne manque pas de mémoire sur des requêtes classiques.
+
+4. thread_cache_size = 8 (L'hôtel des employés)
+    Qu'est-ce que c'est ? Au lieu de détruire et de recréer un "employé virtuel" (un thread) à chaque fois qu'un utilisateur clique sur ton site, MariaDB va en garder quelques-uns en veille dans un "cache".
+    Le rôle : Créer un thread sous Linux prend du temps et de l'énergie au processeur. Avec un cache de 8, lorsqu'un utilisateur quitte ton site, son "employé" ne meurt pas : il attend sur une chaise que le prochain visiteur arrive pour le servir instantanément.
+
+5. myisam_recover_options = BACKUP (La trousse de secours)
+    Le rôle : Si ta VM plante brutalement (coupure de courant, crash de Docker) pendant que MariaDB écrivait dans une vieille table MyISAM, les fichiers peuvent être corrompus. Au redémarrage suivant, cette option dit à MariaDB : "Essaie de réparer automatiquement la table cassée, mais fais d'abord une copie de sauvegarde (BACKUP) des fichiers abîmés au cas où la réparation échouerait".
+
+6. max_connections = 100 (La jauge à l'entrée 🚧)
+    Qu'est-ce que c'est ? C'est le nombre maximum de clients simultanés (comme des processus WordPress) autorisés à se connecter en même temps à la base de données.
+    Le rôle : Si 101 personnes tentent de charger une page de ton site en même temps, le 101ème recevra une erreur "Too many connections". Cela sert de fusible pour éviter que MariaDB ne consomme toute la RAM de ta VM et ne fasse crasher tout le système en voulant répondre à trop de monde à la fois.
+
+7. table_cache = 64 (ou table_open_cache) (Les tiroirs ouverts)
+    Qu'est-ce que c'est ? C'est le nombre maximum de tables de ta base de données que MariaDB peut garder "ouvertes" en même temps dans sa mémoire.
+    Le rôle : Ouvrir un fichier sur le disque dur de la VM est une action lente. Si MariaDB garde les fichiers des tables WordPress ouverts dans son cache (ici 64 tables max), il peut y lire et y écrire beaucoup plus rapidement.
+
+# Note: The configured log file or its directory need to be created
+# and be writable by the mysql user, e.g.:
+# $ sudo mkdir -m 2750 /var/log/mysql
+# $ sudo chown mysql /var/log/mysql
+
+Une petite note pour nous donner les infos pour set les logs de notre DB
+Rappel le 2 est le "set groupe ID" dans la commande de mkdir, les suivants u -> user, g -> groupes et o -> other => "ugo"
+4 ecriture, 2 lecture, 1 exec.
+
+Ce qui me reste:
+# Both location gets rotated by the cronjob.
+# Be aware that this log type is a performance killer.
+# Recommend only changing this at runtime for short testing periods if needed!
+#general_log_file       = /var/log/mysql/mysql.log
+#general_log            = 1
+
+# When running under systemd, error logging goes via stdout/stderr to journald
+# and when running legacy init error logging goes to syslog due to
+# /etc/mysql/conf.d/mariadb.conf.d/50-mysqld_safe.cnf
+# Enable this if you want to have error logging into a separate file
+#log_error = /var/log/mysql/error.log
+# Enable the slow query log to see queries with especially long duration
+#log_slow_query_file    = /var/log/mysql/mariadb-slow.log
+#log_slow_query_time    = 10
+#log_slow_verbosity     = query_plan,explain
+#log-queries-not-using-indexes
+#log_slow_min_examined_row_limit = 1000
+
+# The following can be used as easy to replay backup logs or for replication.
+# note: if you are setting up a replica, see README.Debian about other
+#       settings you may need to change.
+#server-id              = 1
+#log_bin                = /var/log/mysql/mysql-bin.log
+expire_logs_days        = 10
+#max_binlog_size        = 100M
+
+#
+# * SSL/TLS
+#
+
+# For documentation, please read
+# https://mariadb.com/kb/en/securing-connections-for-client-and-server/
+#ssl-ca = /etc/mysql/cacert.pem
+#ssl-cert = /etc/mysql/server-cert.pem
+#ssl-key = /etc/mysql/server-key.pem
+#require-secure-transport = on
+
+#
+# * Character sets
+#
+
+# MariaDB default is now utf8 4-byte character set.
+# No Debian specific default is required.
+
+#
+# * InnoDB
+#
+
+# InnoDB is enabled by default with a 10MB datafile in /var/lib/mysql/.
+# Read the manual for more InnoDB related options. There are many!
+# Most important is to give InnoDB 80 % of the system RAM for buffer use:
+# https://mariadb.com/kb/en/innodb-system-variables/#innodb_buffer_pool_size
+#innodb_buffer_pool_size = 8G
+
+# this is only for embedded server
+[embedded]
+
+# This group is only read by MariaDB servers, not by MySQL.
+# If you use the same .cnf file for MySQL and MariaDB,
+# you can put MariaDB-only options here
+[mariadbd]
+
+# This group is only read by MariaDB-11.8 servers.
+# If you use the same .cnf file for MariaDB of different versions,
+# use this group for options that older servers don't understand
+[mariadb-11.8]

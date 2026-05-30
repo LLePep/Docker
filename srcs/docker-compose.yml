@@ -7,11 +7,11 @@ services:
   volumes:
    - PATH_User
  mariaDB:
-  image: mariaDB
+  image: mariaDBa
   restart: on-failure
   environnement:
   volume:
    - PATH_User
 volumes:
  wordpress: PATH_HOST
- mariaDB: PATH_HOST
+ mariaDB: PATH_HOSTs
