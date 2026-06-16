@@ -8,14 +8,20 @@ RUN apt update && apt install -y \
     nginx \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /etc/nginx/ssl/nginx-selfsigned.key \
+    -out /etc/nginx/ssl/nginx-selfsigned.crt \
+    -subj "/C=FR/ST=Rhone/L=Lyon/O=42/OU=42Lyon/CN=lpalabos.42.fr"
+
 RUN ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
 
-COPY certificat/nginx-selfsigned.crt /etc/nginx/ssl/nginx-selfsigned.crt
+COPY tools/nginx-selfsigned.crt /etc/nginx/ssl/nginx-selfsigned.crt
 
-COPY certificat/nginx-selfsigned.key /etc/nginx/ssl/nginx-selfsigned.key
+COPY tools/nginx-selfsigned.key /etc/nginx/ssl/nginx-selfsigned.key
 
-COPY config_ssl.txt /etc/
+COPY conf/nginx.conf /etc/
 
 EXPOSE 9000 443
 
