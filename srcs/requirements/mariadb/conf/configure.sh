@@ -1,42 +1,43 @@
-mysql_install_db
+#!/bin/bash
 
-/etc/init.d/mysql start
+set -e
 
-#Check if the database exists
+echo "Starting MariaDB initialization..."
 
-if [ -d "/var/lib/mysql/$MYSQL_DATABASE" ]
-then 
-
-	echo "Database already exists"
-else
-
-# Set root option so that connexion without root password is not possible
-
-mysql_secure_installation << _EOF_
-
-Y
-root4life
-root4life
-Y
-n
-Y
-Y
-_EOF_
-
-#Add a root user on 127.0.0.1 to allow remote connexion 
-#Flush privileges allow to your sql tables to be updated automatically when you modify it
-#mysql -uroot launch mysql command line client
-echo "GRANT ALL ON *.* TO 'root'@'%' IDENTIFIED BY '$MYSQL_ROOT_PASSWORD'; FLUSH PRIVILEGES;" | mysql -uroot
-
-#Create database and user in the database for wordpress
-
-echo "CREATE DATABASE IF NOT EXISTS $MYSQL_DATABASE; GRANT ALL ON $MYSQL_DATABASE.* TO '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD'; FLUSH PRIVILEGES;" | mysql -u root
-
-#Import database in the mysql command line
-mysql -uroot -p$MYSQL_ROOT_PASSWORD $MYSQL_DATABASE < /usr/local/bin/wordpress.sql
-
+# Initialize MySQL data directory if it doesn't exist
+if [ ! -d "/var/lib/mysql/mysql" ]; then
+    echo "Initializing data directory..."
+    mysql_install_db --user=mysql --datadir=/var/lib/mysql > /dev/null
 fi
 
-/etc/init.d/mysql stop
+# Start the server (no networking for setup)
+echo "Starting temporary MariaDB server for setup..."
+mysqld --skip-networking --socket=/run/mysqld/mysqld.sock --user=mysql &
+pid="$!"
 
-exec "$@"
+# Wait for MariaDB to be ready
+echo "Waiting for MariaDB to be ready..."
+until mysqladmin --socket=/run/mysqld/mysqld.sock ping >/dev/null 2>&1; do
+    sleep 1
+done
+echo "MariaDB is ready!"
+
+# Run setup SQL: create database and users
+echo "Running setup SQL..."
+mysql --socket=/run/mysqld/mysqld.sock -u root << EOF
+ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';
+CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};
+CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'%';
+FLUSH PRIVILEGES;
+EOF
+
+# Shut down temporary server
+echo "Shutting down temporary MariaDB..."
+mysqladmin --socket=/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" shutdown
+
+wait "$pid" || true
+
+# Start MariaDB normally (with networking)
+echo "Initialization complete. Starting MariaDB..."
+exec mysqld --user=mysql --datadir=/var/lib/mysql --socket=/run/mysqld/mysqld.sock

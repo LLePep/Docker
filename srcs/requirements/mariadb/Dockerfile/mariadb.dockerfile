@@ -15,6 +15,7 @@ COPY conf/mysqld.conf	/etc/mysql/mariadb.conf.d/mysqld.conf
 COPY conf/configure.sh /usr/local/bin/configure.sh
 
 RUN chmod +x /usr/local/bin/configure.sh
+RUN mkdir -p /run/mysqld && chown -R mysql:mysql /run/mysqld
 
 EXPOSE 3306
 
