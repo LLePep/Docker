@@ -10,7 +10,7 @@ RUN apt update && apt install -y \
     galera-4 \
     && rm -rf /var/lib/apt/lists/*
     
-COPY conf/50-server.cnf	/etc/mysql/mariadb.conf.d/50-server.cnf
+COPY conf/mysqld.conf	/etc/mysql/mariadb.conf.d/mysqld.conf
 
 COPY conf/configure.sh /usr/local/bin/configure.sh
 
