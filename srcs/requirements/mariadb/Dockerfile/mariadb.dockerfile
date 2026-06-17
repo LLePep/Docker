@@ -12,7 +12,7 @@ RUN apt update && apt install -y \
     
 COPY conf/50-server.cnf	/etc/mysql/mariadb.conf.d/50-server.cnf
 
-COPY conf/configure /usr/local/bin/configure.sh
+COPY conf/configure.sh /usr/local/bin/configure.sh
 
 RUN chmod +x /usr/local/bin/configure.sh
 
