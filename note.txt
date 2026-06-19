@@ -447,3 +447,55 @@ sur des anciens serv que tout casse.
 
 
 //faire la correction du ssl interne.
+
+FICHIER de configuration wordPress
+
+le debut le [www] creer un pool qui va dicter comment se comporte notre serveur wordPress,
+il isole et alloue des ressources dessorte que si un crash a lieu mais que l'on heberge plusieur site sur notre serv l'e site faissant crash
+n'impacte pas l'autre.
+
+D'ailleur cela appel la suite notre:
+user = www-data
+cgroups = www-data 
+sont notre utilisateur et groupe. Proprio du process de wordPress.
+
+la ligne sur les backlogs est pour les connexion en attente, elle determine le nombre de requete pouvant s'entaser.
+elle est set a 511 de base, mais sur d'autre OS comme BSD le set -1 est la pour donnee un entasement illimite.
+ATTENTION: Si cette ligne est touche il faut aussi set les variables de son OS linux par exemple a la valeur que l'on souhaite
+sans oublier aussi celle de nginx sans quoi le changement n'aura aucun effet.
+
+Pour set les permissions pour notre Unix Socket, il faut definir un proprio et un groupe la version
+de base propose juste "listen.owner = name" mais si on veux une approche plus moderne et plus flexible 
+on optera pour "listen.acl_user = name, name", Les ACL (Acess control list) et la pour donner les droits a des users, des groupes.
+Voila un petit resume du probleme source wikipedia le debut il parle de la gestion des droits Unix classique qui est un frein du 
+a son format stricte de 1 user, 1 groups, les autres et biensur read/write/exec pour chaque groupes.
+"
+Cependant, cette méthode ne couvre pas suffisamment de cas, notamment en entreprise. En effet,
+les réseaux d'entreprises nécessitent l'attribut de droits pour certains membres de plusieurs groupes distincts,
+ce qui nécessite diverses astuces lourdes à mettre en œuvre et à entretenir sous Unix.
+L'intervention de l'administrateur est souvent nécessaire pour créer les groupes intermédiaires qui permettront de partager des fichiers entre plusieurs utilisateurs ou groupes d'utilisateurs,
+tout en les gardant confidentiels face aux autres.
+Les ACL comblent ce manque en donnant à n'importe quel utilisateur, ou groupe, un des trois droits (lecture, écriture et exécution),
+et cela sans limitation du nombre d'utilisateurs à ajouter. 
+"
+
+listen.allow_clients = @
+Sert a set une adress pour utiliser le CGI de php-fpm, comme le commentaire le dit ca n'a du sens que si php ecoute sur un port
+Unix Socket pas d'ecoute externe plus secure
+
+On peut aussi set la "Niceness" pour son serv de base la value n'est pas set,
+Rappel: de -19 a 20, -19 etant la plus forte priorite.
+
+On a aussi une option pour dump la memoire qui peut etre ajouter "prcess.sumpable = yes", par default elle est mise a no.
+Pourquoi c'est une option avancee, dans le fonctionnement de base de linux quand un process change de proprio comme c'est le cas
+avec le process php-fpm qui demarre en root et qui passe sur un autre user name "wwww-data". Normalement la dump de memoire n'est pas
+autorise elle est enfaite verrouillé donc l'option mise a "yes" enleve cette securite. C'est une option qui peut etre utile sur une installation en dev mais 
+absolument a eviter sur de la prod.
+
+Apres ca on a un petit commentaire qui explique les 3 different modes (static, dynamic, ondemand).
+Le static comme son nom l indique est la pour avoir un server rapide qui consommera tjs la meme quantité de ressource, il est bien dans le cas de forte demande continue ou si l'on veux bcq de performance
+en contrepartie de l'economie de RAM faite sur les heure creuses
+dynamic: il creer/detruit des child selon la demande qui vient c'est une bonne option pour les infras de taille moyenne et qui fluctuent.
+Ondemand: donc "Sur demande" c'est a dire qui creer/detruit des childs que sur demande/absence c'est un bon mode pour les petits infras. 
+
+

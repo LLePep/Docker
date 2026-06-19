@@ -6,32 +6,51 @@ services:
   networks:
     - inception
   build:
-    context: requirements/mariadb/Dockerfile
-    Dockerfile: mariadb.dockerfile
+    context: requirements/mariadb/dockerfile
+    dockerfile: mariadb.dockerfile
   env_file: .env
   restart: on-failure
   volume:
-   - /home/login/data/mariadb
+   - mariadb:/var/lib/mysql
+  expose:
+   - "3306"
  wordpress:
   container_name: wordpress
   networks:
     - inception
   build:
-    context: requirements/wordpress/Dockerfile
-    Dockerfile: wordpress.dockerfile
+    context: requirements/wordpress/dockerfile
+    dockerfile: wordpress.dockerfile
   restart: on-failure
   env_file: .env
+  depends_on:
+   - mariadb
   volumes:
-   - /home/login/data/wordpress
+   - wordpress:/var/www/wordpress
+  expose:
+    - "9000"
  nginx:
   container_name: nginx
   networks:
     - inception
   build:
-    context: requirements/nginx/Dockerfile
-    Dockerfile: nginx.dockerfile
+    context: requirements/nginx/dockerfile
+    dockerfile: nginx.dockerfile
   restart: on-failure
+  env_file: .env
+  ports:
+   - "443:443"
 
 volumes:
- wordpress: PATH_HOST
- mariaDB: PATH_HOST
+ wordpress:
+  driver: 'local'
+  driver_opts:
+  type: 'none' 
+  o: 'bind'	
+  device: '/home/lpalabos/data/wordpress'
+ mariadb:
+  driver: 'local'
+  driver_opts:
+  type: 'none' 
+  o: 'bind'	
+  device: '/home/lpalabos/data/mariadb'
