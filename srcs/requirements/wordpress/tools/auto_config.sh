@@ -26,7 +26,8 @@ if [ ! -f /var/www/html/wp-config.php ]; then
     --role=editor \
     --user_pass=username_password
 
-    chown -R www-data:www-data /var/www/html
 fi
+
+chown -R www-data:www-data /var/www/html
 
 exec php-fpm8.2 -F
