@@ -38,6 +38,9 @@ mysqladmin --socket=/run/mysqld/mysqld.sock -u root -p"${MYSQL_ROOT_PASSWORD}" s
 
 wait "$pid" || true
 
+mkdir -p /var/run/mysqld
+chown -R mysql:mysql /var/run/mysqld
+
 # Start MariaDB normally (with networking)
 echo "Initialization complete. Starting MariaDB..."
 exec mysqld
