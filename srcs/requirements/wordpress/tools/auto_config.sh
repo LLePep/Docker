@@ -1,10 +1,6 @@
 #!/bin/bash
 
-echo "Waiting for MariaDB..."
-until wp db check --allow-root --path='/var/www/html' > /dev/null 2>&1; do
-    echo "Waiting ..."
-    sleep 2
-done
+echo "Starting wordpress install"
 
 if [ ! -f /var/www/html/wp-config.php ]; then
 
