@@ -4,6 +4,8 @@ echo "Starting wordpress install"
 
 if [ ! -f /var/www/html/wp-config.php ]; then
 
+    WP_PASSWORD=$(cat /run/secrets/wp_password)
+
     cd /var/www/html
 
     wp core download --version=7.0 --locale=fr_FR --allow-root

@@ -9,9 +9,14 @@ dir:
 	mkdir -p /home/$(USERNAME)/data/wordpress
 	sed -i 's/^GIT_VERSION=.*/GIT_VERSION=$(shell git rev-parse --short HEAD)/' srcs/.env
 
+up:
+
+down:
+	docker compose --project-directory 'srcs/' -p inception42 down
+
 clean:
 	@echo "Stopping containers and deleting images"
-	docker compose --project-directory 'srcs/' -p inception42 down --rmi all
+	docker rmi -all
 
 fclean: clean
 	@echo "Suppression of volumes"
@@ -20,4 +25,4 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all dir clean fclean re
+.PHONY: all dir clean fclean re down

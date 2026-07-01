@@ -256,7 +256,6 @@ les fichiers d'aide et les bibliothèques partagées (les binaires) nécessaires
 C'est du "lecture seule" pour MariaDB.
 
 datadir = /var/lib/mysql
-/// faire attention de bien lie le volume a /home/login/data
 
 Le rôle : C'est l'emplacement physique sur le disque dur où MariaDB va stocker les vraies données :
 tes tables WordPress, tes utilisateurs, tes articles, tes mots de passe.
@@ -445,9 +444,6 @@ On peut aussi specifier des options d'une version X si vraiment on est connaisse
 pour eviter en reutilisant des fichiers de config de server plus recent
 sur des anciens serv que tout casse.
 
-
-//faire la correction du ssl interne.
-
 FICHIER de configuration wordPress
 
 le debut le [www] creer un pool qui va dicter comment se comporte notre serveur wordPress,
@@ -497,6 +493,3 @@ Le static comme son nom l indique est la pour avoir un server rapide qui consomm
 en contrepartie de l'economie de RAM faite sur les heure creuses
 dynamic: il creer/detruit des child selon la demande qui vient c'est une bonne option pour les infras de taille moyenne et qui fluctuent.
 Ondemand: donc "Sur demande" c'est a dire qui creer/detruit des childs que sur demande/absence c'est un bon mode pour les petits infras. 
-
-//refaire les directions des scripts, pk ne pas faire la page html et lancer tout ca. Sur la VM.
-Faire en sorte que dans le makefile je definise un une variables d'enc TAG_GIT_VERSION qui tag les images docker.

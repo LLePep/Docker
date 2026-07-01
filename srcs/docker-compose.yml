@@ -3,11 +3,14 @@ services:
   image: ${DOMAIN_NAME}/inception/mariadb:${GIT_VERSION}
   container_name: mariadb
   networks:
-    - inception
+   - inception
   build:
-    context: requirements/mariadb
-    dockerfile: dockerfile
+   context: requirements/mariadb
+   dockerfile: dockerfile
   env_file: .env
+  secrets:
+   - db_root_password
+   - db_password
   restart: on-failure
   volumes:
    - mariadb_data:/var/lib/mysql
@@ -17,28 +20,30 @@ services:
   image: ${DOMAIN_NAME}/inception/wordpress:${GIT_VERSION}
   container_name: wordpress
   networks:
-    - inception
+   - inception
   build:
-    context: requirements/wordpress
-    dockerfile: dockerfile
+   context: requirements/wordpress
+   dockerfile: dockerfile
   restart: on-failure
   env_file: .env
+  secrets:
+   - wp_password
   depends_on:
    - mariadb
   volumes:
    - wordpress_data:/var/www/html
   expose:
-    - "9000"
+   - "9000"
  nginx:
   image: ${DOMAIN_NAME}/inception/nginx:${GIT_VERSION}
   container_name: nginx
   networks:
-    - inception
+   - inception
   volumes:
-    - wordpress_data:/var/www/html
+   - wordpress_data:/var/www/html
   build:
-    context: requirements/nginx
-    dockerfile: dockerfile
+   context: requirements/nginx
+   dockerfile: dockerfile
   depends_on:
    - wordpress
   restart: on-failure
@@ -62,3 +67,11 @@ volumes:
 networks:
   inception:
    driver: bridge
+
+secrets:
+  db_root_password:
+   file: ./secrets/db_root_password.txt
+  db_password:
+   file: ./secrets/db_password.txt
+  wp_password:
+   file: ./secrets/wp_password.txt
